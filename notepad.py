@@ -1,213 +1,280 @@
 import tkinter as tk
 from tkinter.filedialog import *
-import tkinter.font as tkFont 
-from tkinter.messagebox import * 
-import os as sys
-
-window = tk.Tk()
-window.geometry("800x400")
-
-window.title("   NotePy   ")
-
-menu_bar = tk.Menu(window)
-
-txt_frame = tk.Frame( window , bg = "#000000" )
- 
-my_font = tkFont.Font( family =  "fira code" , size =  18 )
-
-txt = tk.Text(txt_frame , undo=True , font = my_font  , wrap = "word" )
-
-scroll_bar = tk.Scrollbar( txt_frame , bg = "#000000" , width = 20 , jump = True , highlightcolor = "#ffffff" )
-scroll_bar.pack( side = "right" , anchor = "e", fill = "y"  )
-txt.configure( yscrollcommand = scroll_bar.set )
-scroll_bar.configure( command = txt.yview )
+import tkinter.font as tkFont
+from tkinter.messagebox import *
+import os 
+import threading
 
 
-class editor :
-    def cut():
-        txt.event_generate("<<Cut>>")
+class Editor:
 
-    def copy():
-        txt.event_generate("<<Copy>>")
+    """ class for doing file opertaions with tk.Text objects """
 
-    def paste():
-        txt.event_generate("<<Paste>>")
+    def __init__( self, text ):
+        self.text  =  text
 
-    def undo():
-        txt.event_generate("<<Undo>>")
+    def cut( self ):
+        self.text.event_generate( "<<Cut>>" )
 
-    def redo():
-        txt.event_generate("<<Redo>>")
+    def copy( self ):
+        self.text.event_generate( "<<Copy>>" )
+
+    def paste( self ):
+        self.text.event_generate( "<<Paste>>" )
+
+    def undo( self ):
+        self.text.event_generate( "<<Undo>>" )
+
+    def redo( self ):
+        self.text.event_generate( "<<Redo>>" )
+
+
+class File_Operation:
+
+    """ Can be used to do certain file operations requires window (  tk.Tk object  ) and text (  tk.Text object  ) """
+
+    file_types  =  ( ( "Python files", "*.py" ), ( "All files ", "*.* " ) )
+
+    def __init__( self, window, text ):
+        self.file_path  =  None
+        self.window  =  window
+        self.text  =  text
+
+    def update_title( self ):
+        self.window.title( str( self.file_path ) + "    - Notepad" )
+
+    def open( self ):
+        try:
+            self.file_path  =  askopenfilename( filetypes = self.file_types )
+            x  =  open( self.file_path, "r" )
+            self.text.delete( 1.0, END )
+            self.text.insert( 1.0, x.read(  ) )
+            x.close(  )
+            self.update_title(  )
+
+        except FileNotFoundError:
+            showerror( "File Not Found", " the File does not exist " )
+
+    def saveAs( self ):
+        try:
+            self.file_path  =  asksaveasfilename( filetypes = self.file_types )
+            self.save(  )
+        except FileNotFoundError:
+            showerror( "File Not Found", " the File does not exist " )
+
+    def new( self ):
+        save_bool  =  askyesno( 
+            "Close file", " Do you want to save any unsaved changes ? " )
+        if save_bool:
+            self.save(  )
+
+        self.text.delete( 1.0, END )
+        self.file_path  =  None
+        self.update_title(  )
+
+    def save( self ):
+        try:
+            x  =  open( self.file_path, "w" )
+            x.write( self.text.get( 1.0, END ) )
+            x.close(  )
+            self.update_title(  )
+        except FileExistsError:
+            showwarning( "File Not Found", " The file specified was not found " )
+            self.saveAs(  )
+
+        except TypeError:
+            showinfo( "File not saved", " Please create a file then save it !" )
+            self.saveAs(  )
+
+    def run( self , event = None ):
+        self.save(  )
+        self.run_thread = Run_file_thread( self.file_path )
+        self.run_thread.start()
+
+    def help_on_app(  ):
+        showinfo( title = " Help ", message = " This is a simple notepad \n This notepad was created using the tkinter library in python \n \n  created by Gopal Kataria \n version 1.0 (  released on 13 Aug 2019  ) " )
+
+
+class Run_file_thread( threading.Thread ):
+    def __init__(self, file_path  ):
+        threading.Thread.__init__(self)
+        self.file_path = file_path 
     
+    def run(self):
+        os.system( "py " + self.file_path )
 
-file_types = (("Python files", "*.py"), ("All files ", "*.* "))
 
-class File_Operation :
+
+class Main_window :
+
+    """ the main window of notepy  """
 
     def __init__( self ):
-        self.file_path = None  
 
-    def update_title( self ) :
-        window.title( self.file_path + "    - Notepad")
-    
-    def open( self ):
-        try :
-            self.file_path = askopenfilename( filetypes = file_types )
-            x = open( self.file_path , "r")
-            txt.delete( 1.0 , END )
-            txt.insert( 1.0 , x.read( ) )
-            x.close()
-            self.update_title()
+        self.window  =  tk.Tk(  )
+
+        self.window.geometry( "800x400" )
+
+        self.window.title( "   NotePy   " )
+
+        self.make_text_frame(  )
+
+        self.editor  =  Editor( self.text )
+
+        self.file_operation  =  File_Operation( self.window, self.text )
+
+        self.make_menu_bar()
+
+        self.make_a_ribbon()
+
+        self.packup()
+        
+
+    def make_text_frame( self ):
+
+        self.my_font  =  tkFont.Font( family = "fira code", size = 18 )
+        self.text_frame  =  tk.Frame( self.window, bg = "#000000" )
+
+        self.text  =  tk.Text( self.text_frame, undo = True,
+                            font = self.my_font, wrap = "word" )
+
+        self.scroll_bar  =  tk.Scrollbar( self.text_frame, bg = "#000000",
+                                       width = 20, jump = True, highlightcolor = "#ffffff" )
+
+        self.scroll_bar.pack( side = "right", anchor = "e", fill = "y" )
+
+        self.text.configure( yscrollcommand = self.scroll_bar.set )
+
+        self.scroll_bar.configure( command = self.text.yview )
+
+        self.text.pack( side = "right", ipadx = 4, ipady = 4,
+                       anchor = "e", fill = "both", expand = True )
+
+
+    def make_menu_bar( self ):
+
+        self.menu_bar  =  tk.Menu( self.window )
+
+        self.file_menu  =  tk.Menu(  self.menu_bar, tearoff = False )
+
+
+        self.file_menu.add_command( label = " Open ", command = self.file_operation.open   )
+        self.file_menu.add_command( label = " New ",  command = self.file_operation.new   )
+        self.file_menu.add_command( label = " Save ",  command = self.file_operation.save   )
+        self.file_menu.add_command( label = " Save as ", command = self.file_operation.saveAs   )
+
+
+        self.file_menu.add_separator(  )
+
+        self.file_menu.add_command( label = " Exit ", command = self.window.destroy )
+
+        self.menu_bar.add_cascade( label = " File ", menu = self.file_menu )
+
+        self.edit_menu  =  tk.Menu( self.menu_bar, tearoff = False )
+
+        self.edit_menu.add_command( label = " Undo ",  command = self.editor.undo )
+        self.edit_menu.add_command( label = " Redo ",  command = self.editor.redo )
+        self.edit_menu.add_command( label = " Cut " , command  =  self.editor.cut )
+        self.edit_menu.add_command( label = " Copy ",  command = self.editor.copy )
+        self.edit_menu.add_command( label = " Paste ", command = self.editor.paste )
+
+        self.menu_bar.add_cascade( label = " Edit", menu = self.edit_menu )
+
+        self.help_menu  =  tk.Menu( self.menu_bar, tearoff = False )
+
+
+        self.help_menu.add_command( label = " Help on this app  ", command = self.file_operation.help_on_app  )
+
+        self.menu_bar.add_cascade( label = " Help ", menu = self.help_menu )
+
+        self.run_menu = tk.Menu( self.menu_bar , tearoff = False )
+
+        self.run_menu.add_command( label=" Run", command=self.file_operation.run)
+
+        self.run_menu.add_command(  label=" Help on run ", command=self.help_on_run )
+
+        self.menu_bar.add_cascade( label = "Run" , menu = self.run_menu )
+
+        
+        self.window.config( menu = self.menu_bar )
+
+        
+    def help_on_run(self):
+        showinfo("Run Option " , " You can run your python code from Run menu or by pressing the f5 key, please note that you can't stop the code from running in the editor ")
+
+    def add_btn_ribbon(self , name, cmd):
+
+        self.buttons.append(tk.Button(self.ribbon_frame, text=name,
+                                        command=cmd, relief="groove", font=self.btn_font,))
+        self.buttons[-1].pack(padx=4, pady=4, ipadx=2,
+                                ipady=2, side="left")
+
+    def make_a_ribbon(self):
+
+
+        self.ribbon_frame = tk.Frame(self.window)
+
+        self.btn_font = tkFont.Font(family="helvetica", size=10)
+
+        self.buttons = []
+
+        self.empty_labels = []
+
+        self.btns_dict = { "Open" : self.file_operation.open ,  "New" : self.file_operation.new , "Save" : self.file_operation.save , "Run" : self.file_operation.run }
+
+      
+        
+        for name , func in self.btns_dict.items() :
+            self.add_btn_ribbon( name , func )
+
+        self.blank_label("Font Size")
+
+
+
+        self.font_change = tk.Entry(self.ribbon_frame, relief="ridge", width=4)
+        self.font_change.insert(0, "18")
+        self.font_change.pack(padx=4, pady=4, ipadx=2, ipady=2, side="left")
+
+
+        self.window.bind("<Return>", self.change_font_size_event  )
+        self.window.bind("<F5>" , self.file_operation.run )
+
+        self.blank_label()
+
+        
+
+    def blank_label(self , content=""):
+            self.empty_labels.append(
+                tk.Label(self.ribbon_frame, text=content, font=self.btn_font))
+            self.empty_labels[-1].pack(side="left", anchor="w")
+
+
+    def change_font_size_event(self, event):
+        try:
+            size = int(self.font_change.get())
+            self.my_font.config(size=size)
+        except ValueError:
+            self.font_change.delete(0, 100)
+            self.font_change.insert(0,  self.my_font.cget("size"))
             
-        except FileNotFoundError:
-            showerror("File Not Found", " the File does not exist ")
-
-
+    def start(self) :
+        self.window.mainloop()
     
-    def saveAs(self):
-        try :
-            self.file_path = asksaveasfilename( filetypes = file_types  )
-            self.save()
-        except FileNotFoundError :
-            showerror( "File Not Found" , " the File does not exist ")
+    def stop(self):
+        self.window.destroy()
 
-    
-    def new(self):
-        save_bool =   askyesno( "Close file" , " Do you want to save any unsaved changes ? ")
-        if save_bool : 
-            self.save()
+    def packup(self):
+        ## every frame is gonna be packed over here in ORDER 
 
-        txt.delete( 1.0 , END )
-        self.file_path = None 
-        self.update_title()
+        self.ribbon_frame.pack(side="top", anchor="e",
+                               padx=4, pady=2, fill="x")
+
+        self.text_frame.pack(side="left", expand=True, fill="both")
 
 
+message = """ NotePy \n A better text editor for Python \n your code will run here \n\n  """
 
-    def save(self):
-        try  : 
-            x = open(self.file_path , "w")
-            x.write(txt.get(1.0, END))
-            x.close()
-            self.update_title()
-        except FileExistsError :
-            showwarning("File Not Found" , " The file specified was not found ")
-            self.saveAs() 
-
-        except TypeError :
-            showinfo( "File not saved" , " Please create a file then save it !" )
-            self.saveAs()
-            
-    def run(self):
-        self.save() 
-        sys.system("py " + self.file_path)
-
-
-file_operation = File_Operation() 
-
-
-
-file_menu = tk.Menu(menu_bar, tearoff=False )
-
-
-file_menu.add_command(label=" Open ", command=file_operation.open)
-file_menu.add_command(label=" New ",  command=file_operation.new)
-file_menu.add_command(label=" Save ",  command=file_operation.save)
-file_menu.add_command(label=" Save as ", command=file_operation.saveAs)
-
-
-file_menu.add_separator()
-
-file_menu.add_command(label=" Exit ", command=window.destroy)
-
-menu_bar.add_cascade(label=" File ", menu=file_menu)
-
-edit_menu = tk.Menu(menu_bar, tearoff=False)
-
-edit_menu.add_command(label=" Undo ",  command=editor.undo)
-edit_menu.add_command(label=" Redo ",  command=editor.redo)
-edit_menu.add_command(label=" Copy ",  command=editor.copy)
-edit_menu.add_command(label=" Paste ", command=editor.paste)
-
-menu_bar.add_cascade(label=" Edit", menu=edit_menu)
-
-help_menu = tk.Menu(menu_bar, tearoff=False)
-def help_on_app():
-    showinfo( title= " Help " , message = " This is a simple notepad \n This notepad was created using the tkinter library in python \n \n  created by Gopal Kataria \n version 1.0 ( released on 13 Aug 2019 ) ")
-help_menu.add_command(label=" Help on this app  " , command = help_on_app )
-
-menu_bar.add_cascade(label=" Help ", menu=help_menu)
-
-ribbon_frame = tk.Frame(window)
-buttons = [ ]
-
-btn_font = tkFont.Font( family = "helvetica" , size  = 10 )
-
-
-
-def add_btn_ribbon( name , cmd  ):
-    
-    buttons.append( tk.Button( ribbon_frame , text = name, command = cmd  , relief = "groove"  , font = btn_font ,  ))
-    buttons[-1].pack( padx = 4 , pady = 4 , ipadx = 2 , ipady = 2 , side = "left"  )
- 
-empty_labels = []
-def blank_label( content = "" ):
-    empty_labels.append( tk.Label( ribbon_frame  , text = content , font = btn_font ))
-    empty_labels[-1].pack( side="left" , anchor = "w")
-
-add_btn_ribbon("  New  ", file_operation.new)
-add_btn_ribbon("  Save  ", file_operation.save)
-add_btn_ribbon("  Open  ", file_operation.open )
-
-blank_label("Font Size")
-
-def change_font_size(event):
-    try :
-        size = int(font_change.get() )
-        my_font.config( size = size )
-    except ValueError  :
-        font_change.delete( 0 , 100 )
-        font_change.insert( 0,  my_font.cget( "size" ))
-    
-    
-
-font_change = tk.Entry( ribbon_frame , relief = "ridge" , width = 4    )
-font_change.insert( 0 , "18")
-font_change.pack(padx=4, pady=4, ipadx=2, ipady=2, side="left")
-
-
-window.bind( "<Return>" , change_font_size )
-
-blank_label()
-add_btn_ribbon( "  Run  " , file_operation.run )
-add_btn_ribbon( "  Copy  " , editor.copy ) 
-add_btn_ribbon("  Paste  " , editor.paste )
-add_btn_ribbon( "  Cut  " , editor.cut)
-add_btn_ribbon( "  Undo  " , editor.undo )
-add_btn_ribbon("  Redo  " , editor.redo )
-
-
-ribbon_frame.pack(side="top", anchor="e", padx=4, pady=2 , fill = "x" )
-
-info_frame = Label( txt_frame , height = 1 , text = " NOTE : Editor will stop working while the script is executing ") 
-info_frame.pack( side = "bottom" , anchor = "s" , fill = "x" , ipady = 1 )
-
-txt.pack(side="right", ipadx=4, ipady=4, anchor="e" , fill = "both" , expand = True  )
-
-
-txt_frame.pack( side="left" , expand = True , fill = "both" )
-
-window.protocol("WM_DELETE_WINDOW" , exit)
-
-def exit():
-    if askyesno( "Quit" , " do you want to save any changes ?") :
-        file_operation.save()
-        window.destroy()
-    else :
-        window.destroy()
-
-window.config(menu=menu_bar )
-if __name__ == "__main__":
-    window.mainloop()
-    
-
-print(" Text editor exited ")
+x = Main_window()
+print("welcome to the notepy editor. \nthis isn't an interactive shell but just a place where your script\n will run. ")
+print("*You must not close this window ")
+x.start()
