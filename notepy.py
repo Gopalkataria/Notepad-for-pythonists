@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter.filedialog import *
 import tkinter.font as tkFont
 from tkinter.messagebox import *
-import os 
+import os
 import threading
 
 
@@ -63,7 +63,7 @@ class File_Operation:
             showerror( "File Not Found", " the File does not exist " )
 
     def new( self ):
-        save_bool  =  askyesno( 
+        save_bool  =  askyesno(
             "Close file", " Do you want to save any unsaved changes ? " )
         if save_bool:
             self.save(  )
@@ -91,15 +91,15 @@ class File_Operation:
         self.run_thread = Run_file_thread( self.file_path )
         self.run_thread.start()
 
-    def help_on_app(  ):
+    def help_on_app( self  ):
         showinfo( title = " Help ", message = " This is a simple notepad \n This notepad was created using the tkinter library in python \n \n  created by Gopal Kataria \n version 1.0 (  released on 13 Aug 2019  ) " )
 
 
 class Run_file_thread( threading.Thread ):
     def __init__(self, file_path  ):
         threading.Thread.__init__(self)
-        self.file_path = file_path 
-    
+        self.file_path = file_path
+
     def run(self):
         os.system( "py " + self.file_path )
 
@@ -128,7 +128,7 @@ class Main_window :
         self.make_a_ribbon()
 
         self.packup()
-        
+
 
     def make_text_frame( self ):
 
@@ -195,10 +195,10 @@ class Main_window :
 
         self.menu_bar.add_cascade( label = "Run" , menu = self.run_menu )
 
-        
+
         self.window.config( menu = self.menu_bar )
 
-        
+
     def help_on_run(self):
         showinfo("Run Option " , " You can run your python code from Run menu or by pressing the f5 key, please note that you can't stop the code from running in the editor ")
 
@@ -222,8 +222,8 @@ class Main_window :
 
         self.btns_dict = { "Open" : self.file_operation.open ,  "New" : self.file_operation.new , "Save" : self.file_operation.save , "Run" : self.file_operation.run }
 
-      
-        
+
+
         for name , func in self.btns_dict.items() :
             self.add_btn_ribbon( name , func )
 
@@ -241,7 +241,7 @@ class Main_window :
 
         self.blank_label()
 
-        
+
 
     def blank_label(self , content=""):
             self.empty_labels.append(
@@ -256,15 +256,15 @@ class Main_window :
         except ValueError:
             self.font_change.delete(0, 100)
             self.font_change.insert(0,  self.my_font.cget("size"))
-            
+
     def start(self) :
         self.window.mainloop()
-    
+
     def stop(self):
         self.window.destroy()
 
     def packup(self):
-        ## every frame is gonna be packed over here in ORDER 
+        ## every frame is gonna be packed over here in ORDER
 
         self.ribbon_frame.pack(side="top", anchor="e",
                                padx=4, pady=2, fill="x")
